@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#11120f" />
+    <meta name="description" content="A fast, accurate guitar tuner that works from your microphone." />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/icons/tuner-192.png" />
+    <link rel="apple-touch-icon" href="/icons/tuner-192.png" />
+    <title>Strum — Guitar Tuner</title>
+  </head>
+  <body>
+    <div id="app">
+      <header class="topbar">
+        <a class="brand" href="#" aria-label="Strum tuner home">
+          <span class="brand-mark" aria-hidden="true"><span></span></span>
+          <span>STRUM</span>
+        </a>
+        <button class="icon-button" id="settingsButton" aria-expanded="false" aria-controls="settingsPanel">
+          <span class="sr-only">Tuner settings</span>
+          <span aria-hidden="true">•••</span>
+        </button>
+      </header>
+
+      <aside class="settings-panel" id="settingsPanel" aria-hidden="true">
+        <div class="settings-heading">
+          <div>
+            <p class="eyebrow">SETUP</p>
+            <h2>Fine tune the tuner</h2>
+          </div>
+          <button class="close-button" id="closeSettings" aria-label="Close settings">×</button>
+        </div>
+
+        <label class="setting-row" for="tuningSelect">
+          <span><strong>Tuning</strong><small>Choose your string targets</small></span>
+          <select id="tuningSelect">
+            <option value="standard">Standard · E A D G B E</option>
+            <option value="dropD">Drop D · D A D G B E</option>
+            <option value="halfStep">Half step down · E♭ A♭ D♭ G♭ B♭ E♭</option>
+            <option value="openG">Open G · D G D G B D</option>
+            <option value="dadgad">DADGAD · D A D G A D</option>
+          </select>
+        </label>
+
+        <div class="setting-row">
+          <span><strong>Concert pitch</strong><small>Reference frequency for A4</small></span>
+          <div class="stepper" aria-label="Concert pitch">
+            <button id="a4Down" aria-label="Lower concert pitch">−</button>
+            <output id="a4Value">440 Hz</output>
+            <button id="a4Up" aria-label="Raise concert pitch">+</button>
+          </div>
+        </div>
+
+        <div class="tip-card">
+          <span aria-hidden="true">◎</span>
+          <p><strong>For the cleanest read</strong> pluck one string at a time near the 12th fret and mute the others.</p>
+        </div>
+      </aside>
+      <div class="scrim" id="scrim"></div>
+
+      <main>
+        <section class="intro" aria-labelledby="pageTitle">
+          <p class="eyebrow">GUITAR TUNER</p>
+          <h1 id="pageTitle">Find the note.<br /><em>Hold the line.</em></h1>
+          <div class="tuning-chip">
+            <span class="live-dot" aria-hidden="true"></span>
+            <span id="tuningName">STANDARD</span>
+            <button id="openTuning" aria-label="Change tuning">⌄</button>
+          </div>
+        </section>
+
+        <section class="tuner-card" id="tunerCard" aria-live="polite">
+          <div class="card-topline">
+            <span id="directionLabel">READY WHEN YOU ARE</span>
+            <div class="signal" aria-label="Input signal">
+              <i></i><i></i><i></i><i></i><i></i>
+            </div>
+          </div>
+
+          <div class="gauge-shell">
+            <div class="gauge-ticks" aria-hidden="true">
+              <span>−50</span><span>−25</span><span>0</span><span>+25</span><span>+50</span>
+            </div>
+            <div id="gauge" aria-label="Tuning gauge from 50 cents flat to 50 cents sharp"></div>
+            <div class="note-readout">
+              <span class="string-number" id="stringNumber">AUTO</span>
+              <div><strong id="noteName">—</strong><sup id="noteAccidental"></sup></div>
+              <span class="frequency" id="frequency">0.0 Hz</span>
+            </div>
+          </div>
+
+          <div class="gauge-legend" aria-hidden="true">
+            <span>FLAT</span><strong id="centsValue">0 cents</strong><span>SHARP</span>
+          </div>
+
+          <div class="mic-status" id="micStatus">
+            <span class="status-pulse" aria-hidden="true"></span>
+            <span id="micStatusText">CONNECTING TO MICROPHONE</span>
+            <button id="micRetry" hidden>ALLOW MICROPHONE</button>
+          </div>
+          <p class="privacy-note" id="privacyNote">Always listening while open. Audio never leaves this device.</p>
+        </section>
+
+        <section class="strings-section" aria-labelledby="stringsTitle">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">STRING SELECT</p>
+              <h2 id="stringsTitle">Standard tuning</h2>
+            </div>
+            <button class="auto-button active" id="autoButton" aria-pressed="true"><span></span>AUTO</button>
+          </div>
+          <div class="strings" id="stringButtons"></div>
+          <p class="string-hint">Tap a string to hear its reference tone and tune manually.</p>
+        </section>
+      </main>
+
+      <footer>
+        <span>STRUM / PRECISION TOOLS</span>
+        <span>MICROPHONE REQUIRED</span>
+      </footer>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
