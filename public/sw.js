@@ -1,5 +1,6 @@
-const CACHE = 'strum-tuner-v4';
-const APP_SHELL = ['/', '/index.html', '/manifest.webmanifest', '/icons/tuner-192.png', '/icons/tuner-512.png'];
+const CACHE = 'strum-tuner-v5';
+const BASE = new URL('./', self.location.href).pathname;
+const APP_SHELL = [BASE, `${BASE}index.html`, `${BASE}manifest.webmanifest`, `${BASE}icons/tuner-192.png`, `${BASE}icons/tuner-512.png`];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(APP_SHELL)).then(() => self.skipWaiting()));
@@ -20,6 +21,6 @@ self.addEventListener('fetch', (event) => {
       const copy = response.clone();
       caches.open(CACHE).then((cache) => cache.put(event.request, copy));
       return response;
-    }).catch(() => caches.match('/index.html'))),
+    }).catch(() => caches.match(`${BASE}index.html`))),
   );
 });
