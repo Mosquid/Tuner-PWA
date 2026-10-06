@@ -1,4 +1,5 @@
 import JustGage from 'justgage';
+import { PitchTracker } from './pitch-tracker.js';
 import './styles.css';
 
 const TUNINGS = {
@@ -31,12 +32,10 @@ let autoMode = true;
 let selectedString = null;
 let concertA = Number(localStorage.getItem('concertA')) || 440;
 let tuningKey = localStorage.getItem('tuning') || 'standard';
-let recentReadings = [];
+const pitchTracker = new PitchTracker();
 let lastStableAt = 0;
 let lastVibrationAt = 0;
 let lastAnalysisAt = 0;
-let smoothedCents = null;
-let smoothedFrequency = null;
 let activeStringIndex = null;
 let lockedInTune = false;
 
@@ -88,6 +87,7 @@ function renderStrings() {
 }
 
 function selectString(index, play = false) {
+  resetTracking();
   autoMode = false;
   selectedString = index;
   els.autoButton.classList.remove('active');
@@ -98,6 +98,7 @@ function selectString(index, play = false) {
 }
 
 function enableAuto() {
+  resetTracking();
   autoMode = true;
   selectedString = null;
   els.autoButton.classList.add('active');
@@ -171,9 +172,7 @@ async function startMicrophone() {
     analyser.smoothingTimeConstant = 0;
     audioContext.createMediaStreamSource(mediaStream).connect(analyser);
     isListening = true;
-    recentReadings = [];
-    smoothedCents = null;
-    smoothedFrequency = null;
+    resetTracking();
     els.micStatus.classList.add('listening');
     els.micStatus.classList.toggle('needs-tap', audioContext.state === 'suspended');
     els.micStatusText.textContent = audioContext.state === 'suspended' ? 'TAP ONCE TO ACTIVATE' : 'MICROPHONE LIVE';
@@ -232,8 +231,8 @@ function detectPitch() {
   const rms = Math.sqrt(buffer.reduce((sum, sample) => sum + sample * sample, 0) / buffer.length);
   setSignal(rms);
   const pitch = rms > 0.009 ? yinPitch(buffer, audioContext.sampleRate) : null;
-  if (pitch && pitch > 60 && pitch < 700) updateFromPitch(pitch);
-  else if (performance.now() - lastStableAt > 900) showWaiting();
+  updateFromPitch(pitch && pitch > 60 && pitch < 700 ? pitch : null);
+  if (performance.now() - lastStableAt > 700) showWaiting();
   animationId = requestAnimationFrame(detectPitch);
 }
 
@@ -274,45 +273,23 @@ function parabolicInterpolation(values, index) {
   return divisor ? index + (right - left) / divisor : index;
 }
 
+function resetTracking() {
+  pitchTracker.reset();
+  activeStringIndex = null;
+  lockedInTune = false;
+  lastStableAt = 0;
+  showWaiting();
+}
+
 function updateFromPitch(frequency) {
-  const strings = TUNINGS[tuningKey].strings;
-  const index = autoMode ? nearestString(frequency, strings) : selectedString ?? 0;
-  const target = midiToFrequency(strings[index][2]);
-  const cents = 1200 * Math.log2(frequency / target);
-  // One fret is 100 cents. Keep enough headroom to identify a fretted string,
-  // while staying below the midpoint where adjacent guitar strings get ambiguous.
-  const identificationWindow = autoMode ? 175 : 250;
-  if (Math.abs(cents) > identificationWindow) return;
-  if (index !== activeStringIndex) {
-    recentReadings = [];
-    smoothedCents = null;
-    smoothedFrequency = null;
-    lockedInTune = false;
-    activeStringIndex = index;
-  }
-  recentReadings.push({ cents, frequency });
-  if (recentReadings.length > 9) recentReadings.shift();
-  const medianCents = median(recentReadings.map((item) => item.cents));
-  const medianFrequency = median(recentReadings.map((item) => item.frequency));
-  smoothedCents = smoothedCents === null ? medianCents : smoothedCents * 0.72 + medianCents * 0.28;
-  smoothedFrequency = smoothedFrequency === null ? medianFrequency : smoothedFrequency * 0.72 + medianFrequency * 0.28;
-  lastStableAt = performance.now();
-  paintReading(index, smoothedCents, smoothedFrequency);
-}
-
-function nearestString(frequency, strings) {
-  let winner = 0;
-  let smallest = Infinity;
-  strings.forEach(([, , midi], index) => {
-    const distance = Math.abs(1200 * Math.log2(frequency / midiToFrequency(midi)));
-    if (distance < smallest) { smallest = distance; winner = index; }
-  });
-  return winner;
-}
-
-function median(numbers) {
-  const sorted = [...numbers].sort((a, b) => a - b);
-  return sorted[Math.floor(sorted.length / 2)];
+  const now = performance.now();
+  const targets = TUNINGS[tuningKey].strings.map(([, , midi]) => midiToFrequency(midi));
+  const reading = pitchTracker.update(frequency, targets, autoMode ? null : selectedString ?? 0, now);
+  if (!reading) return;
+  if (reading.index !== activeStringIndex) lockedInTune = false;
+  activeStringIndex = reading.index;
+  lastStableAt = now;
+  paintReading(reading.index, reading.cents, reading.frequency);
 }
 
 function paintReading(index, cents, frequency) {
@@ -347,6 +324,8 @@ function paintReading(index, cents, frequency) {
 }
 
 function showWaiting() {
+  lockedInTune = false;
+  els.cents.textContent = '— cents';
   els.direction.textContent = 'PLUCK A STRING';
   els.tunerCard.dataset.state = 'listening';
   els.frequency.textContent = 'Listening…';
@@ -373,6 +352,7 @@ function closeSettings() {
 
 function updateConcertA(delta) {
   concertA = Math.max(420, Math.min(460, concertA + delta));
+  resetTracking();
   localStorage.setItem('concertA', concertA);
   els.a4Value.textContent = `${concertA} Hz`;
   if (selectedString !== null) showTarget(selectedString);
