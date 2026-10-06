@@ -63,5 +63,21 @@ test('brief dropouts keep the reading but widely separated samples cannot confir
   tracker.update(null, targets, null, 144);
   assert.equal(tracker.update(hz(0), targets, null, 192).index, 0);
   tracker.reset();
-  for (const now of [0, 200, 400]) assert.equal(tracker.update(hz(0), targets, null, now), null);
+  for (const now of [0, 800, 1600]) assert.equal(tracker.update(hz(0), targets, null, now), null);
+});
+
+
+test('slow and uneven analysis still acquires a detuned string and follows the pitch', () => {
+  for (const cadence of [[0, 150, 300, 450, 600, 750], [0, 80, 240, 450, 610, 820]]) {
+    const tracker = new PitchTracker();
+    let reading;
+    for (const now of cadence) reading = tracker.update(hz(0, 35), targets, null, now);
+    assert.equal(reading.index, 0);
+    assert.ok(Math.abs(reading.cents - 35) < 1e-8);
+    for (let now = 1000; now <= 1750; now += 150) reading = tracker.update(hz(0, -25), targets, null, now);
+    assert.ok(reading.cents < -20);
+    for (let now = 1900; now <= 2350; now += 150) reading = tracker.update(hz(1, 20), targets, null, now);
+    assert.equal(reading.index, 1);
+    assert.ok(Math.abs(reading.cents - 20) < 1e-8);
+  }
 });

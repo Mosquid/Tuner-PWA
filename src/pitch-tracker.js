@@ -13,7 +13,8 @@ export class PitchTracker {
 
   update(frequency, targets, selectedIndex, now) {
     if (this.lastAcceptedAt !== null && now - this.lastAcceptedAt > 700) this.reset();
-    if (this.lastInputAt !== null && now - this.lastInputAt > 120) this.pending = [];
+    // Slow analysis is not silence; use the same expiry as the held reading.
+    if (this.lastInputAt !== null && now - this.lastInputAt > 700) this.pending = [];
     this.lastInputAt = now;
     if (!Number.isFinite(frequency) || frequency <= 0) {
       this.pending = [];
