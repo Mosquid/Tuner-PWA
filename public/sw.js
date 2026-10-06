@@ -1,4 +1,4 @@
-const CACHE = 'strum-tuner-v5';
+const CACHE = 'strum-tuner-v7';
 const BASE = new URL('./', self.location.href).pathname;
 const APP_SHELL = [BASE, `${BASE}index.html`, `${BASE}manifest.webmanifest`, `${BASE}icons/tuner-192.png`, `${BASE}icons/tuner-512.png`];
 
