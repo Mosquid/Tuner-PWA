@@ -38,6 +38,8 @@ let lastVibrationAt = 0;
 let lastAnalysisAt = 0;
 let activeStringIndex = null;
 let lockedInTune = false;
+let screenWakeLock = null;
+let requestingScreenWakeLock = false;
 
 const gauge = new JustGage({
   id: 'gauge', value: 0, min: -50, max: 50,
@@ -202,6 +204,37 @@ function cleanupAudio() {
   cancelAnimationFrame(animationId);
   mediaStream?.getTracks().forEach((track) => track.stop());
   mediaStream = null;
+}
+
+// Keep the display awake only while this PWA is the foreground app. Browsers
+// automatically release wake locks when a page is hidden, but releasing it
+// explicitly also handles app minimisation promptly.
+async function requestScreenWakeLock() {
+  if (
+    !('wakeLock' in navigator)
+    || document.visibilityState !== 'visible'
+    || screenWakeLock
+    || requestingScreenWakeLock
+  ) return;
+
+  requestingScreenWakeLock = true;
+  try {
+    screenWakeLock = await navigator.wakeLock.request('screen');
+    screenWakeLock.addEventListener('release', () => {
+      screenWakeLock = null;
+      if (document.visibilityState === 'visible') requestScreenWakeLock();
+    });
+  } catch {
+    // Wake Lock is optional and can be denied by the browser or OS.
+  } finally {
+    requestingScreenWakeLock = false;
+  }
+}
+
+function releaseScreenWakeLock() {
+  const wakeLock = screenWakeLock;
+  screenWakeLock = null;
+  wakeLock?.release().catch(() => {});
 }
 
 function showError(message) {
@@ -380,11 +413,17 @@ document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') closeSettings();
 });
 window.addEventListener('beforeunload', cleanupAudio);
+window.addEventListener('pagehide', releaseScreenWakeLock);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') requestScreenWakeLock();
+  else releaseScreenWakeLock();
+});
 
 els.tuningSelect.value = tuningKey;
 els.a4Value.textContent = `${concertA} Hz`;
 renderStrings();
 startMicrophone();
+requestScreenWakeLock();
 
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`));
