@@ -62,12 +62,22 @@
       <main>
         <section class="intro" aria-labelledby="pageTitle">
           <p class="eyebrow">GUITAR TUNER</p>
-          <h1 id="pageTitle">Find the note.<br /><em>Hold the line.</em></h1>
+          <h1 class="sr-only" id="pageTitle">Guitar tuner</h1>
           <div class="tuning-chip">
             <span class="live-dot" aria-hidden="true"></span>
             <span id="tuningName">STANDARD</span>
             <button id="openTuning" aria-label="Change tuning">⌄</button>
           </div>
+          <svg class="headstock" viewBox="0 0 440 280" role="img" aria-labelledby="headstockTitle headstockDescription">
+            <title id="headstockTitle">Guitar headstock with six tuning pegs</title>
+            <desc id="headstockDescription">Pluck a string or select one below to highlight its tuning peg.</desc>
+            <path class="headstock-neck" d="M184 210H256L261 280H179Z" />
+            <path class="headstock-body" d="M184 214C184 193 158 188 158 165V48Q158 32 174 29L192 25Q220 6 248 25L266 29Q282 32 282 48V165C282 188 256 193 256 214Z" />
+            <path class="headstock-inlay" d="m220 37 5 7-5 7-5-7Z" />
+            <path class="headstock-fret" d="M182 249H258M180 278H260" />
+            <g id="headstockStrings" aria-hidden="true"></g>
+            <path class="headstock-nut" d="M184 212H256V219H184Z" />
+          </svg>
         </section>
 
         <section class="tuner-card" id="tunerCard" aria-live="polite">

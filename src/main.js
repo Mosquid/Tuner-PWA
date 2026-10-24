@@ -20,6 +20,7 @@ const els = {
   stringsTitle: $('#stringsTitle'), settings: $('#settingsPanel'), scrim: $('#scrim'),
   settingsButton: $('#settingsButton'), closeSettings: $('#closeSettings'), openTuning: $('#openTuning'),
   a4Value: $('#a4Value'), a4Down: $('#a4Down'), a4Up: $('#a4Up'),
+  headstockStrings: $('#headstockStrings'), headstockDescription: $('#headstockDescription'),
 };
 
 let audioContext;
@@ -73,6 +74,24 @@ function splitNote(note) {
 function renderStrings() {
   const tuning = TUNINGS[tuningKey];
   els.strings.innerHTML = '';
+  // Front view: low E/A/D ascend the left; G/B/high E descend the right.
+  els.headstockStrings.innerHTML = tuning.strings.map(([note], index) => {
+    const left = index < 3;
+    const y = 58 + (left ? 2 - index : index - 3) * 53;
+    const postX = left ? 180 : 260;
+    const stringX = 195 + index * 10;
+    const labelX = left ? 78 : 362;
+    return `<g class="headstock-string" data-index="${index}">
+      <path class="headstock-wire" style="stroke-width: ${1.9 - index * 0.2}" d="M${stringX} 280V214L${postX} ${y}" />
+      <path class="peg-shaft" d="M${left ? 134 : 282} ${y - 4}h24v8h-24Z" />
+      <rect class="peg-key" x="${left ? 113 : 303}" y="${y - 13}" width="24" height="26" rx="9" />
+      <circle class="peg-ring" cx="${postX}" cy="${y}" r="13" />
+      <circle class="peg-post" cx="${postX}" cy="${y}" r="7" />
+      <path class="peg-slot" d="M${postX - 3} ${y + 3}l6-6" />
+      <text class="peg-note" x="${labelX}" y="${y + 2}">${note}</text>
+      <text class="peg-number" x="${labelX}" y="${y + 17}">${6 - index}</text>
+    </g>`;
+  }).join('');
   tuning.strings.forEach(([note, octave, midi], index) => {
     const { letter, accidental } = splitNote(note);
     const button = document.createElement('button');
@@ -113,6 +132,12 @@ function updateStringSelection(activeIndex = selectedString) {
   document.querySelectorAll('.string-button').forEach((button, index) => {
     button.classList.toggle('active', index === activeIndex);
   });
+  document.querySelectorAll('.headstock-string').forEach((peg, index) => {
+    peg.classList.toggle('active', index === activeIndex);
+  });
+  els.headstockDescription.textContent = activeIndex == null
+    ? 'Pluck a string or select one below to highlight its tuning peg.'
+    : `String ${6 - activeIndex}, ${TUNINGS[tuningKey].strings[activeIndex][0]}${TUNINGS[tuningKey].strings[activeIndex][1]}: highlighted tuning peg.`;
 }
 
 function showTarget(index) {
@@ -362,6 +387,7 @@ function showWaiting() {
   els.direction.textContent = 'PLUCK A STRING';
   els.tunerCard.dataset.state = 'listening';
   els.frequency.textContent = 'Listening…';
+  updateStringSelection(autoMode ? null : selectedString);
 }
 
 function setSignal(rms) {

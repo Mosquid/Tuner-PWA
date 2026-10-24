@@ -8,6 +8,10 @@ import { PitchTracker } from '../src/pitch-tracker.js';
 // This checks the path beyond the tracker without needing microphone permission.
 test('detuned audio reaches the gauge at a slow analysis cadence', async () => {
   const elements = new Map();
+  const activePegs = new Set();
+  const pegs = Array.from({ length: 6 }, (_, index) => ({
+    classList: { toggle(_, active) { active ? activePegs.add(index) : activePegs.delete(index); } },
+  }));
   const element = () => ({
     classList: { add() {}, remove() {}, toggle() {} }, dataset: {}, children: [],
     setAttribute() {}, addEventListener() {}, appendChild() {}, textContent: '',
@@ -28,7 +32,8 @@ test('detuned audio reaches the gauge at a slow analysis cadence', async () => {
         if (!elements.has(selector)) elements.set(selector, element());
         return elements.get(selector);
       },
-      querySelectorAll: () => [], createElement: element, addEventListener() {},
+      querySelectorAll: (selector) => selector === '.headstock-string' ? pegs : [],
+      createElement: element, addEventListener() {},
     },
     window: { addEventListener() {} },
     localStorage: { getItem: () => null },
@@ -62,6 +67,17 @@ test('detuned audio reaches the gauge at a slow analysis cadence', async () => {
       for (let i = 0; i < 6; i++) { now += 150; frame(); }
       assert.ok(values.length > 0, `MIDI ${midi}: no gauge update`);
       assert.ok(Math.abs(values.at(-1) - cents) < 1, `MIDI ${midi}: gauge ${values.at(-1)}, expected ${cents}`);
+      assert.deepEqual([...activePegs], [[40, 45, 50, 55, 59, 64].indexOf(midi)], `MIDI ${midi}: wrong tuning peg`);
     }
   }
+  vm.runInContext('showWaiting()', context);
+  assert.equal(activePegs.size, 0, 'automatic highlighting clears after silence');
+  vm.runInContext('selectString(5); showWaiting()', context);
+  assert.deepEqual([...activePegs], [5], 'manual target stays highlighted while waiting');
+  assert.match(elements.get('#headstockDescription').textContent, /String 1, E4/);
+  vm.runInContext('enableAuto()', context);
+  assert.equal(activePegs.size, 0, 'returning to auto clears the manual target');
+  vm.runInContext("tuningKey = 'halfStep'; renderStrings(); selectString(0)", context);
+  assert.match(elements.get('#headstockStrings').innerHTML, /E♭/);
+  assert.match(elements.get('#headstockDescription').textContent, /String 6, E♭2/);
 });
